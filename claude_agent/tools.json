@@ -1,0 +1,310 @@
+[
+    {
+        "name": "get_cell_ranges",
+        "description": "READ. Get detailed information about cells in specified ranges, including values, formulas, and key formatting. Accepts multiple ranges for efficient batch reading. The result includes mergedRanges when any requested cells are part of merged areas — check it before writing into or copying over that area.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sheetName": {
+                    "type": "string",
+                    "description": "Worksheet tab name, must match exactly."
+                },
+                "ranges": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "A1-notation ranges, e.g. [\"A1:C10\", \"E1:F5\"]."
+                },
+                "includeStyles": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "cellLimit": {
+                    "type": "number",
+                    "default": 2000,
+                    "description": "Max non-empty cells returned."
+                },
+                "explanation": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            },
+            "required": [
+                "sheetName",
+                "ranges"
+            ]
+        }
+    },
+    {
+        "name": "get_range_as_csv",
+        "description": "READ. PREFERRED for code execution and data analysis. Returns CSV string ready for pandas. Use this by default when reading data in Python. Only use get_cell_ranges if you specifically need formulas, notes, or cell formatting.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sheetName": {
+                    "type": "string"
+                },
+                "range": {
+                    "type": "string",
+                    "description": "A1 range, e.g. A1:Z100 or A:Z."
+                },
+                "includeHeaders": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "maxRows": {
+                    "type": "number",
+                    "default": 500
+                },
+                "explanation": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            },
+            "required": [
+                "sheetName",
+                "range"
+            ]
+        }
+    },
+    {
+        "name": "set_cell_range",
+        "description": "WRITE. Set values, formulas, notes, and/or formatting for cells. Pass a map of A1 cell addresses to cell data — no range or dimension calculation needed. Use `formula` for any derived/calculated cell so the workbook stays dynamic and auditable; use `value` only for raw inputs (labels, source data). Example: {\"A1\": {value: \"Revenue\"}, \"B1\": {formula: \"=SUM(Data!B2:B100)\"}, \"B2\": {formula: \"=B1*(1+Assumptions!$B$5)\"}}. To fill a pattern across a large range, write the pattern here then call copy_paste_range. The result may include `formula_results` (computed values of written formulas — check for #VALUE!/#NAME?/broken refs). When present, inspect it before describing the write as done. Number formats, locale rendering, and formatting changes still need a read-back (get_cell_ranges) before you describe them as done. Always provide a clear explanation parameter.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sheetName": {
+                    "type": "string"
+                },
+                "cells": {
+                    "type": "object",
+                    "description": "Map of A1 address to cell data.",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "value": {
+                                "description": "Static value (labels, raw inputs)."
+                            },
+                            "formula": {
+                                "type": "string",
+                                "description": "Starts with '='."
+                            },
+                            "note": {
+                                "type": "string"
+                            },
+                            "cellStyles": {
+                                "type": "object",
+                                "properties": {
+                                    "backgroundColor": {
+                                        "type": "string"
+                                    },
+                                    "fontColor": {
+                                        "type": "string"
+                                    },
+                                    "fontFamily": {
+                                        "type": "string"
+                                    },
+                                    "fontLine": {
+                                        "enum": [
+                                            "none",
+                                            "underline",
+                                            "line-through"
+                                        ]
+                                    },
+                                    "fontSize": {
+                                        "type": "number"
+                                    },
+                                    "fontStyle": {
+                                        "enum": [
+                                            "normal",
+                                            "italic"
+                                        ]
+                                    },
+                                    "fontWeight": {
+                                        "enum": [
+                                            "normal",
+                                            "bold"
+                                        ]
+                                    },
+                                    "horizontalAlignment": {
+                                        "enum": [
+                                            "left",
+                                            "center",
+                                            "right"
+                                        ]
+                                    },
+                                    "numberFormat": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "borderStyles": {
+                                "type": "object",
+                                "description": "Keys: all, top, bottom, left, right, insideHorizontal, insideVertical.",
+                                "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                        "color": {
+                                            "type": "string"
+                                        },
+                                        "style": {
+                                            "enum": [
+                                                "solid",
+                                                "dashed",
+                                                "dotted",
+                                                "double",
+                                                "none"
+                                            ]
+                                        },
+                                        "weight": {
+                                            "enum": [
+                                                "thin",
+                                                "medium",
+                                                "thick"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "allow_overwrite": {
+                    "type": "boolean"
+                },
+                "resizeWidth": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "enum": [
+                                "points",
+                                "standard",
+                                "autofit"
+                            ]
+                        },
+                        "value": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "type"
+                    ]
+                },
+                "resizeHeight": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "enum": [
+                                "points",
+                                "standard",
+                                "autofit"
+                            ]
+                        },
+                        "value": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "type"
+                    ]
+                },
+                "explanation": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            },
+            "required": [
+                "sheetName",
+                "cells"
+            ]
+        }
+    },
+    {
+        "name": "copy_paste_range",
+        "description": "WRITE. Copy a range to another location (same or different sheet) with automatic formula translation and pattern expansion. Use for: filling a formula/pattern down or across a large range, format-painting (copyType:'formats'), freezing formulas to values (copyType:'values'), and cross-sheet copies. NOTE: a native copy keeps relative references relative to the DESTINATION sheet — if source formulas reference cells outside the copied block on the source sheet, those refs point at the wrong sheet after a cross-sheet copy. In that case use copyType:'values' to freeze, or the code-execution tool to copy+rewrite refs, or warn the user. MERGED CELLS: a copy whose destination cuts across part of a merged area fails — when detectable, the tool blocks it and names the conflicting merged ranges; unmerge them, adjust the destination to fully cover or avoid the merged area, or ask the user (don't retry the same call). The result's `copied` field echoes what happened; the destination is NOT read back — re-read it before describing the outcome as done.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sourceRange": {
+                    "type": "string"
+                },
+                "destRange": {
+                    "type": "string",
+                    "description": "Can be larger than the source; the pattern repeats."
+                },
+                "sourceSheetName": {
+                    "type": "string"
+                },
+                "destSheetName": {
+                    "type": "string"
+                },
+                "copyType": {
+                    "enum": [
+                        "all",
+                        "formats",
+                        "values",
+                        "formulas"
+                    ]
+                },
+                "allow_overwrite": {
+                    "type": "boolean"
+                },
+                "explanation": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            },
+            "required": [
+                "sourceRange",
+                "destRange"
+            ]
+        }
+    },
+    {
+        "name": "execute_office_js",
+        "description": "Execute Office.js JavaScript code to interact with the Excel document. The code receives a context parameter and runs inside Excel.run(). Use this for any document operations.\n\nFreeze panes: to keep header rows or columns visible while the user scrolls, call `sheet.freezePanes.freezeRows(count)` / `sheet.freezePanes.freezeColumns(count)` — they freeze the top `count` rows / first `count` columns in place (e.g. `freezeRows(3)` when the header is on row 3, so the title rows above it stay visible too). Avoid `sheet.freezePanes.freezeAt(range)` for this: it makes `range` itself the frozen pane and can leave the rows above it and the columns to its left scrolled out of view.\n\nA `conductor` global is available for sharing files with other agents:\n  `conductor.writeFile(\"data.json\", jsonString)`  — broadcast a file to all connected agents\n  `conductor.readFile(\"excel-abc\", \"data.json\")`  — read another agent's file\n  `conductor.listFiles(\"excel-abc\")`              — list an agent's shared files\n\nLARGE DATA: When you need to send data to another agent (cell values, tables, extracted content, XML, etc.), write it to a conductor file instead of putting it in the send_message text. Use `execute_office_js` to read the data and call `conductor.writeFile()` with a descriptive filename (e.g. data.json, table.txt, chart.xml). The file is broadcast immediately to all peers and visible in their virtual filesystem. Then call send_message with a short message saying what you want done. Do NOT include instructions on how to read it; the receiving agent can access it directly.\n\nUSING RECEIVED FILES: When a peer has shared a file, read AND use it inside the SAME code block. NEVER `return conductor.readFile(...)` — that dumps the entire file into your context.\n\nWORKFLOW: peek at structure via bash `head -5 /agents/<id>/files/<name>`, then come straight here and write the full processing code. The header line is enough — you do NOT need to see every row in your context.\n\n  // ✅ GOOD: after bash head -5 showed \"Country,Region,Rate,Year\"\n  const raw = conductor.readFile(\"desktop-41c\", \"data.csv\");\n  const lines = raw.trim().split(\"\\n\");\n  const rows = lines.slice(1).map(r => r.split(\",\"));\n  const sheet = context.workbook.worksheets.add(\"Imported\");\n  sheet.getRangeByIndexes(0, 0, rows.length, rows[0].length).values = rows;\n  await context.sync();\n  return { rowsWritten: rows.length };\n\n  // ❌ BAD: read-only — whole file leaks into context\n  return conductor.readFile(\"desktop-41c\", \"data.csv\");\n\nIf structure is genuinely unclear after `head`, return a small probe (e.g. `return { keys: Object.keys(JSON.parse(raw)), len: raw.length }`) — never the full contents.\n\nLARGE DATA: [see note below]\n\nA `blobs` global provides in-memory storage local to this browser sandbox. It persists across execute_office_js calls for the conversation, but is NOT visible to the server-side `bash` or `code_execution` containers:\n  `blobs.getText(\"name\")`   — decoded UTF-8 string or null (for .csv, .json, .html, code files)\n  `blobs.getJSON(\"name\")`   — parsed JSON or null\n  `blobs.get(\"name\")`       — Uint8Array or null (raw bytes)\n  `blobs.getBase64(\"name\")` — base64 string or null (for insert*FromBase64)\n  `blobs.has(\"name\")`       — check if blob exists\n  `blobs.keys()`            — list stored blob names\n  `blobs.setText(\"name\", s)` / `blobs.setJSON(\"name\", v)` — stash data for later calls (5MB cap)\n\nSTASHING LARGE RESULTS: when a fetch (Graph, file read) would overflow the 40k-char tool-result limit, write the full payload to `blobs.setJSON()` and return only a small summary (`{count, sample: items.slice(0,3)}`). Later calls read it back with `blobs.getJSON()` inside the sandbox — the full data never enters context. `conductor.writeFile` is for broadcasting to OTHER agents; it is NOT a local stash and is NOT readable from the `bash` or `code_execution` sandboxes — use `blobs` for that.\n\nThe `blobs` store also holds SKILL files (auto-populated by `read_skill`) and user-uploaded images (pre-loaded, keyed by `file_id`). For other uploaded files (`container_upload`: .xlsx, .pdf, .csv, .docx), use `code_execution` (Python) — see the File Uploads section of the system prompt.\n\nAn `attachImage(base64, mediaType?)` global lets you return an image you can SEE in the tool result (as a vision content block, not text). Call it with the `.value` of any Office.js `getImage()` after `context.sync()`:\n  `const img = sheet.getRange(\"A1:F20\").getImage(); await context.sync(); attachImage(img.value);`\nAlso works for `chart.getImage()`. Use it when visual layout/formatting matters and cell values alone aren't answering the question. Keep rendered ranges under ~50 rows — larger produces illegible text.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "Async function body receiving `context`."
+                },
+                "explanation": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            },
+            "required": [
+                "code"
+            ]
+        }
+    },
+    {
+        "name": "extract_chart_xml",
+        "description": "READ. Extract a chart's OOXML XML from the workbook for sending to a PowerPoint agent via send_message. Only use this in the conductor chart-sharing flow — do NOT use for general chart reading or analysis. Applies PPT-specific transforms (transparent background, strips workbook references) and saves chart.xml, chart-style.xml, chart-colors.xml as conductor files. Call send_message next — the files are shared automatically.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "chartId": {
+                    "type": "string"
+                },
+                "sheetName": {
+                    "type": "string"
+                },
+                "fileName": {
+                    "type": "string",
+                    "description": "Default: 'chart'."
+                },
+                "explanation": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            },
+            "required": [
+                "chartId"
+            ]
+        }
+    }
+]
